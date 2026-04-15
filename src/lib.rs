@@ -1,13 +1,14 @@
+use std::{
+    collections::HashSet,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::Duration,
+};
+
 use anyhow::{Context, Result, bail};
 use futures_util::StreamExt;
 use serde::Deserialize;
-use std::collections::HashSet;
-use std::path::{Path, PathBuf};
-use std::sync::Arc;
-use std::time::Duration;
-use tokio::io::AsyncWriteExt;
-use tokio::sync::Semaphore;
-use tokio::task::JoinSet;
+use tokio::{io::AsyncWriteExt, sync::Semaphore, task::JoinSet};
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,8 @@ impl HubProvider {
 
 #[derive(Debug, Deserialize)]
 struct HfFile {
-    path: String,
-    size: u64,
+    path:   String,
+    size:   u64,
     r#type: String,
 }
 
@@ -51,7 +52,7 @@ struct MsResponse {
     #[serde(rename = "Success")]
     success: bool,
     #[serde(rename = "Data")]
-    data: Option<MsData>,
+    data:    Option<MsData>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -63,9 +64,9 @@ struct MsData {
 #[derive(Debug, Deserialize)]
 struct MsFile {
     #[serde(rename = "Path")]
-    path: String,
+    path:   String,
     #[serde(rename = "Size")]
-    size: u64,
+    size:   u64,
     #[serde(rename = "Type")]
     r#type: String,
 }
@@ -73,8 +74,8 @@ struct MsFile {
 /// 平台无关的统一文件描述，需要 Clone 以便在 retry 闭包中复用。
 #[derive(Clone)]
 struct UnifiedFile {
-    path: String,
-    size: u64,
+    path:         String,
+    size:         u64,
     download_url: String,
 }
 
@@ -83,20 +84,20 @@ struct UnifiedFile {
 /// 单次下载请求的参数。
 pub struct DownloadOptions {
     /// 仓库 ID，例如 `"meta-llama/Llama-2-7b-hf"`。
-    pub repo_id: String,
+    pub repo_id:  String,
     /// 分支、tag 或 commit hash。`None` 时使用平台默认分支。
     pub revision: Option<String>,
     /// 本地根目录，库会在其下自动创建 `<owner>--<model>` 子目录。
     pub save_dir: PathBuf,
     /// 允许下载的相对路径白名单，`None` 表示下载全部文件。
-    pub files: Option<Vec<String>>,
+    pub files:    Option<Vec<String>>,
 }
 
 /// 模型下载器，持有 HTTP 客户端与配置，可复用于多次下载。
 pub struct ModelDownloader {
     /// reqwest::Client 内部已是 Arc，无需再套一层 Arc。
-    client: reqwest::Client,
-    provider: HubProvider,
+    client:      reqwest::Client,
+    provider:    HubProvider,
     concurrency: usize,
     max_retries: u32,
 }
@@ -144,9 +145,7 @@ impl ModelDownloader {
         tokio::fs::create_dir_all(&model_dir).await?;
 
         let files = match &self.provider {
-            HubProvider::HuggingFace { .. } => {
-                self.get_hf_files(&options.repo_id, revision).await?
-            }
+            HubProvider::HuggingFace { .. } => self.get_hf_files(&options.repo_id, revision).await?,
             HubProvider::ModelScope { .. } => self.get_ms_files(&options.repo_id, revision).await?,
         };
 
@@ -215,10 +214,7 @@ impl ModelDownloader {
 
         // 两个平台鉴权逻辑相同，统一处理，消除重复
         if let Some(token) = provider.token() {
-            headers.insert(
-                reqwest::header::AUTHORIZATION,
-                format!("Bearer {}", token).parse()?,
-            );
+            headers.insert(reqwest::header::AUTHORIZATION, format!("Bearer {}", token).parse()?);
         }
 
         Ok(reqwest::Client::builder()
@@ -245,8 +241,7 @@ impl ModelDownloader {
 
     /// 获取 HuggingFace 文件列表，支持递归子目录与 Link 分页。
     async fn get_hf_files(&self, repo_id: &str, revision: &str) -> Result<Vec<UnifiedFile>> {
-        let base_url =
-            std::env::var("HF_ENDPOINT").unwrap_or_else(|_| "https://huggingface.co".to_string());
+        let base_url = std::env::var("HF_ENDPOINT").unwrap_or_else(|_| "https://huggingface.co".to_string());
 
         let mut all_files = Vec::new();
         // ?recursive=1 获取所有子目录文件
@@ -269,16 +264,15 @@ impl ModelDownloader {
                 .and_then(parse_link_next);
 
             let page: Vec<HfFile> = resp.json().await?;
-            all_files.extend(page.into_iter().filter(|f| f.r#type == "file").map(|f| {
-                UnifiedFile {
-                    download_url: format!(
-                        "{}/{}/resolve/{}/{}",
-                        base_url, repo_id, revision, f.path
-                    ),
-                    path: f.path,
-                    size: f.size,
-                }
-            }));
+            all_files.extend(
+                page.into_iter()
+                    .filter(|f| f.r#type == "file")
+                    .map(|f| UnifiedFile {
+                        download_url: format!("{}/{}/resolve/{}/{}", base_url, repo_id, revision, f.path),
+                        path:         f.path,
+                        size:         f.size,
+                    }),
+            );
         }
 
         Ok(all_files)
@@ -311,8 +305,8 @@ impl ModelDownloader {
                     "https://modelscope.cn/models/{}/resolve/{}/{}",
                     repo_id, revision, f.path
                 ),
-                path: f.path,
-                size: f.size,
+                path:         f.path,
+                size:         f.size,
             })
             .collect())
     }
@@ -385,11 +379,7 @@ where
 ///
 /// **续传安全性**：仅当服务端真实返回 `206 Partial Content` 时才以追加模式
 /// 写入；若服务端忽略 `Range` 头返回 `200`，则截断重写，防止文件静默损坏。
-async fn download_single_file(
-    client: reqwest::Client,
-    file_info: UnifiedFile,
-    dest: PathBuf,
-) -> Result<()> {
+async fn download_single_file(client: reqwest::Client, file_info: UnifiedFile, dest: PathBuf) -> Result<()> {
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }

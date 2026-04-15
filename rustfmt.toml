@@ -1,0 +1,33 @@
+# https://rust-lang.github.io/rustfmt/
+
+edition = "2024"
+style_edition = "2024"
+
+max_width = 120
+chain_width = 60
+comment_width = 120
+force_explicit_abi = true
+hard_tabs = false
+imports_indent = "Block"
+merge_derives = true
+reorder_imports = true
+reorder_modules = true
+space_after_colon = true
+space_before_colon = false
+spaces_around_ranges = false
+tab_spaces = 4
+
+# --- unstable features ---
+unstable_features = true
+blank_lines_upper_bound = 2
+combine_control_expr = true
+enum_discrim_align_threshold = 120
+format_code_in_doc_comments = false
+format_macro_matchers = true
+format_macro_bodies = true
+hex_literal_case = "Upper"
+imports_layout = "Mixed"
+imports_granularity = "Crate"
+reorder_impl_items = false
+group_imports = "StdExternalCrate"
+struct_field_align_threshold = 120

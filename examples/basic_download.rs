@@ -1,6 +1,6 @@
-use model_hub::{DownloadOptions, HubProvider, ModelDownloader};
-
 use std::path::PathBuf;
+
+use model_hub::{DownloadOptions, HubProvider, ModelDownloader};
 
 const OUTPUT_DIR: &str = "./validate_output";
 
@@ -34,18 +34,14 @@ async fn main() -> anyhow::Result<()> {
     .with_concurrency(4)
     .with_max_retries(2)
     .download(DownloadOptions {
-        repo_id: "hf-internal-testing/tiny-random-gpt2".to_string(),
+        repo_id:  "hf-internal-testing/tiny-random-gpt2".to_string(),
         revision: None, // 使用默认分支 "main"
         save_dir: PathBuf::from(OUTPUT_DIR),
-        files: Some(hf_files.clone()),
+        files:    Some(hf_files.clone()),
     })
     .await?;
 
-    verify_files(
-        OUTPUT_DIR,
-        "hf-internal-testing/tiny-random-gpt2",
-        &hf_files,
-    );
+    verify_files(OUTPUT_DIR, "hf-internal-testing/tiny-random-gpt2", &hf_files);
     println!("✓  [HuggingFace] 完成\n");
 
     // ── ModelScope 验证 ────────────────────────────────────────────────────────
@@ -75,10 +71,10 @@ async fn main() -> anyhow::Result<()> {
     .with_concurrency(4)
     .with_max_retries(2)
     .download(DownloadOptions {
-        repo_id: "qwen/Qwen2.5-0.5B".to_string(),
+        repo_id:  "qwen/Qwen2.5-0.5B".to_string(),
         revision: None, // 使用默认分支 "master"
         save_dir: PathBuf::from(OUTPUT_DIR),
-        files: Some(ms_files.clone()),
+        files:    Some(ms_files.clone()),
     })
     .await?;
 

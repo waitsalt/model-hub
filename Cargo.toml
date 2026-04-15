@@ -2,7 +2,7 @@
 authors = ["waitsalt <waitsalt@outlook.com>"]
 categories = ["development-tools", "science"]
 description = "A robust, concurrent downloader for Hugging Face and ModelScope models in Rust."
-edition = "2021"
+edition = "2024"
 keywords = ["ai", "downloader", "huggingface", "modelscope"]
 license = "MIT OR Apache-2.0"
 name = "model-hub"

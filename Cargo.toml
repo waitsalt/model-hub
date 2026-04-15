@@ -1,0 +1,36 @@
+[package]
+authors = ["waitsalt <waitsalt@outlook.com>"]
+categories = ["development-tools", "science"]
+description = "A robust, concurrent downloader for Hugging Face and ModelScope models in Rust."
+edition = "2021"
+keywords = ["ai", "downloader", "huggingface", "modelscope"]
+license = "MIT OR Apache-2.0"
+name = "model-hub"
+readme = "README.md"
+repository = "https://github.com/waitsalt/model_hub"
+version = "0.1.0"
+
+[lib]
+name = "model_hub"
+path = "src/lib.rs"
+
+[[example]]
+name = "basic_download"
+path = "examples/basic_download.rs"
+
+[dependencies]
+anyhow = "1.0"
+futures-util = "0.3"
+reqwest = { version = "0.13", features = ["json", "stream"] }
+serde = { version = "1.0", features = ["derive"] }
+tokio = { version = "1", features = [
+    "fs",
+    "io-util",
+    "macros",
+    "rt",
+    "sync",
+    "time",
+] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
